@@ -15,5 +15,9 @@
     "jade": "~1.11.0",
     "morgan": "~1.9.1",
     "nodemon": "^3.1.14"
+  },
+  "devDependencies": {
+    "@prisma/client": "^6.1.0",
+    "prisma": "^6.1.0"
   }
 }
