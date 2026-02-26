@@ -12,6 +12,8 @@ var usersRouter = require('./routes/users');
 
 var app = express();
 
+const {testPostgresConnection } =require("./config/database")
+
 
 
 app.use(logger('dev'));
@@ -42,4 +44,6 @@ app.use(function(err, req, res, next) {
 const server=http.createServer(app)
 server.listen(process.env.Port,()=>{
   console.log("app is running on prot 5000")
+  testPostgresConnection()
+ 
 })
