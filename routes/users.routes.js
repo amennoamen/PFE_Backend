@@ -1,21 +1,42 @@
 var express = require('express');
-const userController = require('../controllers/user.controller');
 var router = express.Router();
+const userController = require('../controllers/user.controller');
+const authMiddleware = require('../middleware/auth.middleware');
+const roleMiddleware = require('../middleware/role.middleware');
+
+// Toutes les routes nécessitent d'être authentifié
+router.use(authMiddleware);
+
+// Profil utilisateur connecté
+router.get('/me', userController.getMyProfile);
+
+router.patch('/updateMe', userController.updateMyProfile);
+
+router.patch('/updatePassword', userController.updatePassword);
 
 /* GET users  */
-router.get('/getAllUsers', userController.getAll) 
-router.get('/getUserByEmail',userController.getUserByEmail)
-router.get('/getUserById/:id', userController.getById);
+//    GET - Récupérer les utilisateurs ( ADMIN  MANAGER )
+router.get('/getAllUsers', roleMiddleware('ADMIN', 'MANAGER')  ,userController.getAll) 
 
-router.post('/addUser', userController.create);
+router.get('/getUserByEmail',roleMiddleware('ADMIN', 'MANAGER'),userController.getUserByEmail)
 
-//Pour COMPTABLE
-router.patch('/updateUser/:id', userController.update);
+router.get('/getUserById/:id', roleMiddleware('ADMIN', 'MANAGER'),userController.getById);
 
-//  pour activer/désactiver
-router.patch('/toggle/:id', userController.toggleActive);
 
-router.delete('/deleteUserById/:id', userController.delete);
+// POST - Créer un utilisateur (ADMIN uniquement)
+
+router.post('/addUser', roleMiddleware('ADMIN'),userController.create);
+
+//Pour COMPTABLE 
+router.patch('/updateUser/:id', roleMiddleware('ADMIN', 'MANAGER'),userController.update);
+
+// PATCH - Activer/Désactiver (ADMIN uniquement)
+
+router.patch('/toggle/:id',roleMiddleware('ADMIN'), userController.toggleActive);
+
+// DELETE - Supprimer un utilisateur (ADMIN uniquement)
+
+router.delete('/deleteUserById/:id', roleMiddleware('ADMIN'),userController.delete);
 
 
 module.exports = router;

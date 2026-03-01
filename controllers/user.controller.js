@@ -119,6 +119,13 @@ class UserController {
   async delete(req, res) {
     try {
       const { id } = req.params;
+            // Empêcher l'admin de se supprimer lui-même
+
+      if (req.user.id === id) {
+        return res.status(400).json({ 
+          error: 'Vous ne pouvez pas supprimer votre propre compte' 
+        });
+      }
 
       // Vérifier si l'utilisateur existe
       const existing = await userService.getUserById(id);
@@ -167,6 +174,14 @@ class UserController {
   async toggleActive(req, res) {
     try {
       const { id } = req.params;
+
+
+      // Empêcher l'admin de se désactiver lui-même
+      if (req.user.id === id) {
+        return res.status(400).json({ 
+          error: 'Vous ne pouvez pas désactiver votre propre compte' 
+        });
+      }
       const user = await userService.toggleActive(id);
        
       res.json({
@@ -178,6 +193,103 @@ class UserController {
     }
   }
 
+
+  /////////////////////////////////////
+  // profile Utilisateur connecté//
+  ////////////////////////////////
+// GET /api/users/me
+  async getMyProfile(req, res) {
+    try {
+      const userId = req.user.id; // récupéré depuis JWT
+
+      const user = await userService.getUserById(userId);
+
+      if (!user) {
+        return res.status(404).json({ error: 'Utilisateur introuvable' });
+      }
+
+      const { password, ...userWithoutPassword } = user;
+
+      res.json(userWithoutPassword);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+
+
+    // PATCH /api/users/me
+  async updateMyProfile(req, res) {
+    try {
+      const userId = req.user.id;
+      const data = req.body;
+
+      // Empêcher modification role et isActive
+      if (data.role || data.isActive !== undefined) {
+        return res.status(403).json({
+          error: 'Vous ne pouvez pas modifier le rôle ou le statut'
+        });
+      }
+
+      const updatedUser = await userService.updateOwnProfile(userId, data);
+
+      res.json({
+        message: 'Profil modifié avec succès',
+        user: updatedUser
+      });
+
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+ // PATCH /api/users/updatePassword - Changer son mot de passe
+  async updatePassword(req, res) {
+    try {
+      const { oldPassword, newPassword } = req.body;
+      const userId = req.user.id;  // ID depuis le token JWT
+
+      // Validation
+      if (!oldPassword || !newPassword) {
+        return res.status(400).json({ 
+          error: 'Ancien et nouveau mot de passe requis' 
+        });
+      }
+
+      if (newPassword.length < 6) {
+        return res.status(400).json({ 
+          error: 'Le nouveau mot de passe doit contenir au moins 6 caractères' 
+        });
+      }
+
+      if (oldPassword === newPassword) {
+        return res.status(400).json({ 
+          error: 'Le nouveau mot de passe doit être différent de l\'ancien' 
+        });
+      }
+
+      // Changer le mot de passe
+      const user = await userService.updatePassword(userId, oldPassword, newPassword);
+
+      res.json({
+        message: 'Mot de passe modifié avec succès',
+        user
+      });
+    } catch (error) {
+      if (error.message === 'Ancien mot de passe incorrect') {
+        return res.status(400).json({ error: error.message });
+      }
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+
+
+
+
+
+
+  
 }
 
 

@@ -100,14 +100,22 @@ class UserService {
 
  // Modifier un utilisateur
   async updateUser(id, data) {
-    
+    // Si on change le mot de passe, le hasher
+
+    if (data.password) {
+      data.password = await bcryptUtils.hash(data.password);
+    }
+
 
     return await prisma.user.update({
       where: { id },
       data: {
         email: data.email,
+        password: data.password,
         nom: data.nom,
         prenom: data.prenom,
+        role: data.role,
+        isActive: data.isActive
        
       },
       select: {
@@ -124,7 +132,28 @@ class UserService {
     });
   }
 
-
+// Modifier uniquement son propre profil (sans changer le rôle)
+  async updateOwnProfile(id, data) {
+    // Ne permet PAS de changer le rôle
+    return await prisma.user.update({
+      where: { id },
+      data: {
+        email: data.email,
+        nom: data.nom,
+        prenom: data.prenom
+      },
+      select: {
+        id: true,
+        email: true,
+        nom: true,
+        prenom: true,
+        role: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true
+      }
+    });
+  }
   // Activer/Désactiver un utilisateur
   async toggleActive(id) {
     const user = await this.getUserById(id);
@@ -149,6 +178,40 @@ class UserService {
     return userUpdate
   }
 
+   // Changer le mot de passe (avec vérification de l'ancien)
+  async updatePassword(userId, oldPassword, newPassword) {
+    // Récupérer l'utilisateur avec son mot de passe
+    const user = await prisma.user.findUnique({
+      where: { id: userId }
+    });
+
+    if (!user) {
+      throw new Error('Utilisateur introuvable');
+    }
+
+    // Vérifier l'ancien mot de passe
+    const isValid = await bcryptUtils.compare(oldPassword, user.password);
+    if (!isValid) {
+      throw new Error('Ancien mot de passe incorrect');
+    }
+
+    // Hasher le nouveau mot de passe
+    const hashedPassword = await bcryptUtils.hash(newPassword);
+
+    // Mettre à jour
+    return await prisma.user.update({
+      where: { id: userId },
+      data: { password: hashedPassword },
+      select: {
+        id: true,
+        email: true,
+        nom: true,
+        prenom: true,
+        role: true,
+        isActive: true
+      }
+    });
+  }
 
 
 

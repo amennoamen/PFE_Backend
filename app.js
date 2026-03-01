@@ -7,7 +7,9 @@ var logger = require('morgan');
 const http =require("http") // importation protocol web 
 
 require("dotenv").config() //configuration . env
+
 var indexRouter = require('./routes/index');
+var authRoutes = require('./routes/auth.routes');
 var usersRouter = require('./routes/users.routes');
 
 var app = express();
@@ -22,7 +24,11 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Routes
+app.use('/auth', authRoutes);  // ← Nouvelle route
+
 app.use('/', indexRouter);
+
 app.use('/users', usersRouter);
 
 // catch 404 and forward to error handler
