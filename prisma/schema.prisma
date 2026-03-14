@@ -13,19 +13,16 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-
 model User {
-  id        String     @id @default(uuid())
-  email     String     @unique
+  id        String   @id @default(uuid())
+  email     String   @unique
   password  String
   nom       String
   prenom    String
-  role      Role       @default(COMPTABLE)
-  isActive  Boolean    @default(true)
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-  
-  
+  role      Role     @default(COMPTABLE)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("users")
 }
@@ -34,4 +31,25 @@ enum Role {
   ADMIN
   MANAGER
   COMPTABLE
+}
+
+enum DocumentStatus {
+  EN_COURS
+  VALIDE
+  REJETE
+  DANS_BC
+}
+
+model Document {
+  id              Int             @id @default(autoincrement())
+  originalName    String
+  filePath        String
+  status          DocumentStatus  @default(EN_COURS)
+  extractedData   Json?
+  confidenceScore Float?
+  commentaire     String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@map("documents")
 }
