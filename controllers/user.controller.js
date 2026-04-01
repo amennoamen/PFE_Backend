@@ -246,9 +246,10 @@ class UserController {
  // PATCH /api/users/updatePassword - Changer son mot de passe
   async updatePassword(req, res) {
     try {
-      const { oldPassword, newPassword } = req.body;
+      const {oldPassword, newPassword} = req.body;
       const userId = req.user.id;  // ID depuis le token JWT
-
+     
+      console.log(oldPassword)
       // Validation
       if (!oldPassword || !newPassword) {
         return res.status(400).json({ 
@@ -270,6 +271,7 @@ class UserController {
 
       // Changer le mot de passe
       const user = await userService.updatePassword(userId, oldPassword, newPassword);
+       
 
       res.json({
         message: 'Mot de passe modifié avec succès',

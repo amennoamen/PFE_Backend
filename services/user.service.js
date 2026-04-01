@@ -43,6 +43,7 @@ class UserService {
         isActive: true,
         createdAt: true,
         updatedAt: true,
+        lastLogin: true,
         // fakeField: true pour tester 
         // password: false (on ne retourne PAS le mot de passe)
       },
@@ -65,7 +66,7 @@ class UserService {
 
   // Récupérer un utilisateur par ID (sans le mot de passe)
   async getUserById(id) {
-    
+   //await new Promise(resolve => setTimeout(resolve, 5000));
     const user = await prisma.user.findUnique({
       where: { id },
       select: {
@@ -77,6 +78,7 @@ class UserService {
         isActive: true,
         createdAt: true,
         updatedAt: true,
+        lastLogin: true,
       },
     });
     return user;
@@ -143,6 +145,7 @@ class UserService {
         isActive: true,
         createdAt: true,
         updatedAt: true,
+        lastLogin: true,
       },
     });
   }
