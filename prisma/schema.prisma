@@ -54,7 +54,9 @@ model Document {
   uploadedBy String
   user       User     @relation(fields: [uploadedBy], references: [id], onDelete: Cascade) // ONE user
   
- 
+ // relation 1 to 1 avec les donnee extraire 
+  analyse      DocumentAnalyse?
+
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
   
@@ -71,4 +73,45 @@ enum StatutDocument {
   VALIDE            
   REJETE            
   ENVOYE_BC         
+}
+
+model DocumentAnalyse {
+  id           String   @id @default(uuid())
+
+  // relation 1-to-1 avec Document
+  documentId   String   @unique
+  document     Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  //  Classification
+  typeDocument String?
+  bcEntity     String?
+  categorie    String?
+  langue       String?
+  pays         String?
+  resume       String?
+
+  // Données BC (JSON flexible)
+  bcFields     Json?
+  bcLines      Json?
+
+  //  Scores 
+  scoreOcr          Float?
+  scoreClassification Float?
+  scoreExtraction   Float?
+  scoreGlobal       Float?
+
+  //  Validation
+  statutValidation  String?   // VALIDE, EN_ATTENTE
+  actionRecommandee String?   // VALIDATION_AUTO, CORRECTION_MANUELLE...
+  //champsManquants   String[]
+
+  // OCR 
+  texteExtrait  String?   @db.Text
+  methodeOcr    String?   // pdfplumber ou doctr
+  nbMots        Int?
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("document_analyses")
 }
