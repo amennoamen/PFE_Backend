@@ -173,10 +173,41 @@ async delete(req, res) {
     }
   }
 
-  /**
-   * GET /documents/python/health
-   * Vérifie que le microservice Python est disponible
-   */
+  /** GET /documentAnalyser/:id récupère un document avec son analyse IA complète*/
+  async getByIdWithAnalyse(req, res) {
+    try {
+      const { id } = req.params;
+      const document = await documentService.getDocumentWithAnalyse(id);
+      if (!document) {
+        return res.status(404).json({ error: 'Document introuvable' });
+      }
+      res.json(document);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+ 
+    /**  GET /documents/MyDocumentsWithAnalyse  Mes documents avec résumé analyse IA */
+  async getMyDocumentsWithAnalyse(req, res) {
+    try {
+      const documents = await documentService.getMyDocumentsWithAnalyse(req.user.id);
+      res.json(documents);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+ 
+
+
+
+
+
+
+
+
+
+
+  /**  GET /documents/python/health  Vérifie que le microservice Python est disponible **/
   async pythonHealth(req, res) {
     try {
       const ok = await checkHealth();

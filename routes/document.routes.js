@@ -50,10 +50,12 @@ router.post('/upload-analyse', roleMiddleware('COMPTABLE', 'MANAGER', 'ADMIN'), 
   });
 }, documentController.upload);
  
+// Un document avec son analyse IA complète
+router.get('/DocumentAnalyserById/:id', roleMiddleware('COMPTABLE', 'MANAGER', 'ADMIN'), documentController.getByIdWithAnalyse);
 
-
-
-
+// Mes documents avec résumé analyse IA
+router.get('/MyDocumentsWithAnalyse', roleMiddleware('COMPTABLE', 'MANAGER', 'ADMIN'), documentController.getMyDocumentsWithAnalyse);
+ 
 
 
 module.exports = router;
