@@ -47,7 +47,7 @@ class UserService {
         // fakeField: true pour tester 
         // password: false (on ne retourne PAS le mot de passe)
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: { lastLogin: "desc" },
     });
 
     return users;

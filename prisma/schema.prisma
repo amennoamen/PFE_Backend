@@ -72,7 +72,7 @@ enum StatutDocument {
   TRAITEMENT        
   VALIDE            
   REJETE            
-  ENVOYE_BC         
+  ENVOYE_BC     
 }
 
 model DocumentAnalyse {

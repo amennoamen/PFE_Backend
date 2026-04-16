@@ -45,7 +45,18 @@ async createDocument(documentData) {
               role: true,
              // fakeField: true
             }
+          },
+          analyse: {
+          select: {
+            typeDocument:     true,
+            bcEntity:         true,
+            scoreGlobal:      true,
+            statutValidation: true,
+            categorie:        true,
+            bcFields:         true
+            
           }
+        }
         },
         orderBy: {
           createdAt: 'desc'
@@ -101,7 +112,8 @@ async getDocumentById(id) {
               email: true,
               role: true
             }
-          }
+          },analyse:true
+        
         }
       });
       
@@ -262,6 +274,8 @@ async uploadAndAnalyze({ file, userId }) {
             scoreGlobal:      true,
             statutValidation: true,
             categorie:        true,
+            bcFields:         true
+            
           }
         }
       },
