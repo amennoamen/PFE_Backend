@@ -56,6 +56,15 @@ router.get('/DocumentAnalyserById/:id', roleMiddleware('COMPTABLE', 'MANAGER', '
 // Mes documents avec résumé analyse IA
 router.get('/MyDocumentsWithAnalyse', roleMiddleware('COMPTABLE', 'MANAGER', 'ADMIN'), documentController.getMyDocumentsWithAnalyse);
  
+// update analyse 
+router.put('/updateAnalyse/:id',  roleMiddleware('COMPTABLE', 'MANAGER', 'ADMIN'), documentController.updateAnalyse);
 
+// valide Document seulement admin et manager peux faire l'action 
+router.post('/validate/:id', roleMiddleware('MANAGER', 'ADMIN'),documentController.validateDocument);
+
+// Rejeter un Document 
+router.post('/reject/:id',   roleMiddleware('MANAGER', 'ADMIN'),documentController.rejectDocument);
+
+router.get('/file/:id',      roleMiddleware('COMPTABLE', 'MANAGER', 'ADMIN'), documentController.serveFile);
 
 module.exports = router;

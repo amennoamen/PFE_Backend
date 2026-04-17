@@ -196,7 +196,82 @@ async delete(req, res) {
       res.status(500).json({ error: error.message });
     }
   }
+
+  async updateAnalyse(req, res) {
+    try {
+      const { id } = req.params;
+      const { bcFields, bcLines } = req.body;
+      const existing = await documentService.getDocumentById(id);
+       if (!existing) {
+              return res.status(404).json({ error: 'Document  introuvable' });
+         }
+      const analyse = await documentService.updateAnalyse(id, { bcFields, bcLines });
+      res.json({ message: 'Modifications enregistrées', analyse });
+    } catch (error) {
+      console.error('Erreur updateAnalyse:', error);
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+
+    async validateDocument(req, res) {
+    try {
+      const { id } = req.params;
+      const { bcFields, bcLines } = req.body;
+       const existing = await documentService.getDocumentById(id);
+       if (!existing) {
+              return res.status(404).json({ error: 'Document  introuvable' });
+         }
+
+      const document = await documentService.validateDocument(id, { bcFields, bcLines, validatedBy: req.user.id  });
+      res.json({ message: 'Document validé avec succès', document });
+    } catch (error) {
+      console.error('Erreur validateDocument:', error);
+      res.status(500).json({ error: error.message });
+    }
+  }
  
+  async rejectDocument(req, res) {
+    try {
+      const { id } = req.params;
+      const { reason } = req.body;
+      const existing = await documentService.getDocumentById(id);
+      if (!existing) {
+              return res.status(404).json({ error: 'Document  introuvable' });
+         }
+      if (!reason || !reason.trim()) {
+        return res.status(400).json({ error: 'La raison du rejet est obligatoire' });
+      }
+      const document = await documentService.rejectDocument(id, { reason, rejectedBy: req.user.id });
+      res.json({ message: 'Document rejeté', document });
+    } catch (error) {
+      console.error('Erreur rejectDocument:', error);
+      res.status(500).json({ error: error.message });
+    }
+  }
+ async serveFile(req, res) {
+  try {
+    const { id } = req.params;
+    const document = await documentService.getDocumentById(id);
+
+    if (!document) {
+      return res.status(404).json({ error: 'Document introuvable' });
+    }
+
+    // filePath est absolu en base → on l'utilise directement
+    if (!fs.existsSync(document.filePath)) {
+      return res.status(404).json({ error: 'Fichier physique introuvable' });
+    }
+
+    res.setHeader('Content-Type', document.fileType);
+    res.setHeader('Content-Disposition', `inline; filename="${document.originalName}"`);
+    res.sendFile(document.filePath);
+
+  } catch (error) {
+    console.error('Erreur serveFile:', error);
+    res.status(500).json({ error: error.message });
+  }
+}
 
 
 

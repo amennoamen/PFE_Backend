@@ -53,7 +53,8 @@ async createDocument(documentData) {
             scoreGlobal:      true,
             statutValidation: true,
             categorie:        true,
-            bcFields:         true
+            bcFields:         true,
+            bcLines:          true
             
           }
         }
@@ -100,7 +101,8 @@ async createDocument(documentData) {
   // document par id 
 
 async getDocumentById(id) {
-    
+
+      //await new Promise(resolve => setTimeout(resolve, 5000));
       const document = await prisma.document.findUnique({
         where: { id },
         include: {
@@ -189,7 +191,7 @@ async uploadAndAnalyze({ file, userId }) {
  
           // Classification
           typeDocument: metadata?.type_document || null,
-          bcEntity:     metadata?.bc_entity     || null,
+          bcEntity:     metadata?.bc_entity      || null,
           categorie:    metadata?.categorie      || null,
           langue:       metadata?.langue         || null,
           pays:         metadata?.pays           || null,
@@ -283,8 +285,66 @@ async uploadAndAnalyze({ file, userId }) {
     });
   }
 
+    async updateAnalyse(documentId, { bcFields, bcLines }) {
+    const analyse = await prisma.documentAnalyse.update({
+      where:  { documentId },
+      data:   {
+        bcFields: bcFields || undefined,
+        
+        bcLines:  bcLines  || undefined,
+      }
+    });
+    return analyse;
+  }
+ 
+  // SPRINT 2  validation / rejet
+ 
+  async validateDocument(documentId, { bcFields, bcLines, validatedBy }) {
+    // Sauvegarder les corrections éventuelles
+    await prisma.documentAnalyse.update({
+      where: { documentId },
+      data: {
+        bcFields:         bcFields || undefined,
+        bcLines:          bcLines  || undefined,
+        statutValidation: 'VALIDE',
+         actionRecommandee: null 
+      }
+    });
+ 
+    // Mettre à jour le statut du document
+    const document = await prisma.document.update({
+      where:   { id: documentId },
+      data:    { statut: 'VALIDE'},
+      include: {
+        user:    { select: { id: true, nom: true, prenom: true, email: true, role: true } },
+        analyse: true
+      }
+    });
+ 
+    return document;
+  }
 
+async rejectDocument(documentId, { reason, rejectedBy }) {
 
+    // Mettre à jour l'analyse avec le motif
+    await prisma.documentAnalyse.update({
+      where: { documentId },
+      data:  { statutValidation: 'REJETE', actionRecommandee: reason || null }
+    });
+ 
+    // Mettre à jour le statut du document
+    const document = await prisma.document.update({
+      where:   { id: documentId },
+      data:    { statut: 'REJETE' },
+      include: {
+        user:    { select: { id: true, nom: true, prenom: true, email: true, role: true } },
+        analyse: true
+      }
+    });
+ 
+    return document;
+  }
+ 
 
 
 
