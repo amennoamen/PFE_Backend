@@ -104,12 +104,13 @@ model DocumentAnalyse {
   statutValidation  String?   // VALIDE, EN_ATTENTE
   actionRecommandee String?   // VALIDATION_AUTO, CORRECTION_MANUELLE...
   //champsManquants   String[]
-
+  flags             String[]
+  warnings          String[]
   // OCR 
   texteExtrait  String?   @db.Text
   methodeOcr    String?   // pdfplumber ou doctr
   nbMots        Int?
-
+   commentaireRejet  String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 

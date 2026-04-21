@@ -273,7 +273,15 @@ async delete(req, res) {
   }
 }
 
-
+async getDashboardStats(req, res) {
+  try {
+    const stats = await documentService.getDashboardStats();
+    res.json(stats);
+  } catch (error) {
+    console.error('Erreur getDashboardStats:', error);
+    res.status(500).json({ error: error.message });
+  }
+}
 
 
 

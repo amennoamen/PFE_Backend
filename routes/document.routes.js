@@ -67,4 +67,6 @@ router.post('/reject/:id',   roleMiddleware('MANAGER', 'ADMIN'),documentControll
 
 router.get('/file/:id',      roleMiddleware('COMPTABLE', 'MANAGER', 'ADMIN'), documentController.serveFile);
 
+router.get('/stats', roleMiddleware('MANAGER', 'ADMIN'), documentController.getDashboardStats);
+
 module.exports = router;
