@@ -1,7 +1,7 @@
 const { prisma } = require("../config/database");
 const bcryptUtils = require("../utils/bcrypt.utils");
 const jwtUtils = require("../utils/jwt.utils");
-
+const auditService = require('./audit.service');
 class AuthService {
   // Login
   async login(email, password) {
@@ -32,7 +32,13 @@ class AuthService {
       data: { lastLogin: new Date() },
     });
     const token = jwtUtils.generateToken(user);
-
+      // ✅ Log LOGIN
+  await auditService.logAction({
+    userId: user.id,
+    action: 'LOGIN',
+    entityType: 'User',
+    entityId: user.id,
+  });
     // 5. Retourner le token et les infos utilisateur (sans le password)
     return {
       token,

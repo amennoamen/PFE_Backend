@@ -28,6 +28,8 @@ model User {
   
   // relation avec documents 
   documents Document[] // MANY 
+  auditLogs  AuditLog[]
+
 
 
   @@map("users")
@@ -115,4 +117,40 @@ model DocumentAnalyse {
   updatedAt    DateTime @updatedAt
 
   @@map("document_analyses")
+}
+
+model AuditLog {
+  id         String     @id @default(uuid())
+  
+  userId     String
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  action     ActionType
+  entityType String
+  entityId   String?
+  
+  details    Json?
+  
+  createdAt  DateTime   @default(now())
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+  @@index([entityId])
+
+  @@map("audit_logs")
+}
+
+enum ActionType {
+  UPLOAD
+  VALIDATE
+  REJECT
+  TRANSMIT
+  DOWNLOAD
+  LOGIN
+  LOGOUT
+  UPDATE_USER
+  DEACTIVATE_USER
+  CREATE_USER
+  SEND_TO_BC
 }

@@ -1,6 +1,6 @@
 const { prisma } = require("../config/database.js");
 const bcryptUtils = require("../utils/bcrypt.utils");
-
+const auditService = require('./audit.service');
 class UserService {
   // Créer un utilisateur
   async createUser(data) {
@@ -8,7 +8,7 @@ class UserService {
     //await new Promise(resolve => setTimeout(resolve, 5000));
     const hashedPassword = await bcryptUtils.hash(data.password);
 
-    return await prisma.user.create({
+     const user = await prisma.user.create({
       data: {
         email: data.email,
         nom: data.nom,
@@ -27,6 +27,15 @@ class UserService {
         createdAt: true,
       },
     });
+    await auditService.logAction({
+    userId: user.id,
+    action: 'CREATE_USER',
+    entityType: 'User',
+    entityId: user.id,
+    details: { email: user.email, role: user.role },
+  });
+  return user;
+
   }
 
   async getAllUsers() {
@@ -102,7 +111,7 @@ class UserService {
       data.password = await bcryptUtils.hash(data.password);
     }
 
-    return await prisma.user.update({
+    const user= await prisma.user.update({
       where: { id },
       data: {
         email: data.email,
@@ -124,12 +133,21 @@ class UserService {
         // On ne retourne PAS le password
       },
     });
+    await auditService.logAction({
+    userId: id,
+    action: 'UPDATE_USER',
+    entityType: 'User',
+    entityId: id,
+    details: { champsModifies: Object.keys(data) },
+  });
+
+  return user;
   }
 
   // Modifier uniquement son propre profil (sans changer le rôle)
   async updateOwnProfile(id, data) {
     // Ne permet PAS de changer le rôle
-    return await prisma.user.update({
+    const user =  await prisma.user.update({
       where: { id },
       data: {
         email: data.email,
@@ -148,6 +166,15 @@ class UserService {
         lastLogin: true,
       },
     });
+    await auditService.logAction({
+    userId: id,
+    action: 'UPDATE_USER',
+    entityType: 'User',
+    entityId: id,
+    details: { champsModifies: Object.keys(data) },
+  });
+
+  return user;
   }
   // Activer/Désactiver un utilisateur
   async toggleActive(id) {
@@ -170,6 +197,13 @@ class UserService {
         updatedAt: true,
       },
     });
+    await auditService.logAction({
+    userId: id,
+    action: 'DEACTIVATE_USER',
+    entityType: 'User',
+    entityId: id,
+    details: { ancienStatut: user.isActive, nouveauStatut: userUpdate.isActive },
+  });
     return userUpdate;
   }
 
