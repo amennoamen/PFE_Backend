@@ -2,6 +2,8 @@ const { prisma } = require("../config/database");
 const fs = require("fs").promises;
 const { analyzeDocument } = require("./python.service");
 const auditService = require("./audit.service");
+const bcService = require("./bc.service");
+
 class DocumentService {
   // async createDocument(documentData) {
   //   const newDocument = await prisma.document.create({
@@ -366,13 +368,32 @@ class DocumentService {
       },
     });
     //  Log REJECT
-  await auditService.logAction({
-    userId: rejectedBy,
-    action: 'REJECT',
-    entityType: 'Document',
-    entityId: documentId,
-    details: { motif: reason },
-  });
+    await auditService.logAction({
+      userId: rejectedBy,
+      action: "REJECT",
+      entityType: "Document",
+      entityId: documentId,
+      details: { motif: reason },
+    });
+
+    return document;
+  }
+
+  async downloadFile(id, userId) {
+    const document = await prisma.document.findUnique({
+      where: { id },
+    });
+
+    if (!document) return null;
+
+    //  Log DOWNLOAD
+    await auditService.logAction({
+      userId,
+      action: "DOWNLOAD",
+      entityType: "Document",
+      entityId: id,
+      details: { fileName: document.originalName },
+    });
 
     return document;
   }
@@ -443,6 +464,159 @@ class DocumentService {
       parType,
       recents,
     };
+  }
+
+  async sendToBC(documentId, userId) {
+    // 1 — Récupérer le document avec son analyse
+    const document = await prisma.document.findUnique({
+      where: { id: documentId },
+      include: { analyse: true },
+    });
+    if (!document.analyse) throw new Error("Aucune analyse disponible");
+
+    const { bcFields, bcLines, typeDocument } = document.analyse;
+    if (!bcFields) throw new Error("Aucune donnée BC disponible");
+
+    let bcResult = {};
+
+    // 2 — Choisir l'action selon le type de document
+    try {
+      if (typeDocument === "Facture Vente") {
+        // Étape 1 : trouver ou créer le client
+        const customer = await bcService.findCustomerByName(
+          bcFields.customerName,
+        );
+
+        if (!customer) {
+          throw new Error(
+            `Client introuvable dans BC : ${bcFields.customerName}`,
+          );
+        }
+
+        const invoice = await bcService.createSalesInvoice({
+          customerNumber: customer.number, // ← vrai numéro BC (court)
+          invoiceDate: bcFields.invoiceDate || null,
+          dueDate: bcFields.dueDate || null,
+          currencyCode: bcFields.currencyCode || "TND",
+          externalDocumentNumber: bcFields.externalDocumentNumber || null,
+        });
+
+        // Étape 3 : ajouter les lignes
+        if (bcLines && bcLines.length > 0) {
+          for (const line of bcLines) {
+            const item = await bcService.findItemByDescription(
+              line.description,
+            );
+            if (!item) {
+              throw new Error(
+                `Article introuvable dans BC : ${line.description}`,
+              );
+            }
+
+            await bcService.addSalesInvoiceLine({
+              documentId: invoice.id,
+              itemNumber: item.number,
+              description: line.description || "",
+              quantity: line.quantity || 1,
+              unitPrice: line.unitPrice || 0,
+            });
+          }
+        }
+
+        // Étape 4 : poster la facture
+        //await bcService.postSalesInvoice(invoice.id);
+        bcResult = {
+          type: "Facture Vente",
+          bcNumber: invoice.number,
+          bcId: invoice.id,
+        };
+      } else if (typeDocument === "Commande Vente") {
+        const { customer } = await bcService.findOrCreateCustomer(
+          bcFields.customerName || "Client Inconnu",
+        );
+
+        const order = await bcService.createSalesOrder({
+          customerNumber: customer.id,
+          customerName: bcFields.customerName,
+          orderDate: bcFields.orderDate || null,
+          currencyCode: bcFields.currencyCode || "TND",
+          externalDocumentNumber: bcFields.externalDocumentNumber || null,
+          requestedDeliveryDate: bcFields.requestedDeliveryDate || null,
+        });
+
+        if (bcLines && bcLines.length > 0) {
+          for (const line of bcLines) {
+            await bcService.addSalesOrderLine({
+              documentId: order.id,
+              description: line.description || "",
+              quantity: line.quantity || 1,
+              unitPrice: line.unitPrice || 0,
+            });
+          }
+        }
+
+        bcResult = {
+          type: "Commande Vente",
+          bcNumber: order.number,
+          bcId: order.id,
+        };
+      } else if (typeDocument === "Commande Achat") {
+        const order = await bcService.createPurchaseOrder({
+          vendorName: bcFields.vendorName || null,
+          vendorNumber: bcFields.vendorNumber || null,
+          orderDate: bcFields.orderDate || null,
+          currencyCode: bcFields.currencyCode || "TND",
+          externalDocumentNumber: bcFields.externalDocumentNumber || null,
+          requestedReceiptDate: bcFields.requestedReceiptDate || null,
+        });
+
+        if (bcLines && bcLines.length > 0) {
+          for (const line of bcLines) {
+            await bcService.addPurchaseOrderLine({
+              documentId: order.id,
+              description: line.description || "",
+              quantity: line.quantity || 1,
+              unitPrice: line.unitPrice || 0,
+            });
+          }
+        }
+
+        bcResult = {
+          type: "Commande Achat",
+          bcNumber: order.number,
+          bcId: order.id,
+        };
+      } else {
+        throw new Error(
+          `Type de document non supporté pour l'envoi BC : ${typeDocument}`,
+        );
+      }
+    } catch (error) {
+      console.error("[sendToBC] Erreur lors de l envoi BC:", error.message);
+      throw new Error(`Erreur BC : ${error.message}`);
+    }
+
+    // 3 — Mettre à jour le statut en ENVOYE_BC
+    const documentFinal = await prisma.document.update({
+      where: { id: documentId },
+      data: { statut: "ENVOYE_BC" },
+      include: { analyse: true },
+    });
+
+    // 4 — Logger l'action
+    await auditService.logAction({
+      userId,
+      action: "SEND_TO_BC",
+      entityType: "Document",
+      entityId: documentId,
+      details: {
+        typeDocument,
+        bcNumber: bcResult.bcNumber,
+        bcId: bcResult.bcId,
+      },
+    });
+
+    return { document: documentFinal, bcResult };
   }
 }
 module.exports = new DocumentService();

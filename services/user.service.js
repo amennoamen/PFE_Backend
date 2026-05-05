@@ -1,6 +1,6 @@
 const { prisma } = require("../config/database.js");
 const bcryptUtils = require("../utils/bcrypt.utils");
-const auditService = require('./audit.service');
+const auditService = require("./audit.service");
 class UserService {
   // Créer un utilisateur
   async createUser(data) {
@@ -8,7 +8,7 @@ class UserService {
     //await new Promise(resolve => setTimeout(resolve, 5000));
     const hashedPassword = await bcryptUtils.hash(data.password);
 
-     const user = await prisma.user.create({
+    const user = await prisma.user.create({
       data: {
         email: data.email,
         nom: data.nom,
@@ -28,19 +28,17 @@ class UserService {
       },
     });
     await auditService.logAction({
-    userId: user.id,
-    action: 'CREATE_USER',
-    entityType: 'User',
-    entityId: user.id,
-    details: { email: user.email, role: user.role },
-  });
-  return user;
-
+      userId: user.id,
+      action: "CREATE_USER",
+      entityType: "User",
+      entityId: user.id,
+      details: { email: user.email, role: user.role },
+    });
+    return user;
   }
 
   async getAllUsers() {
-
-   // await new Promise(resolve => setTimeout(resolve, 5000));
+    // await new Promise(resolve => setTimeout(resolve, 5000));
 
     const users = await prisma.user.findMany({
       select: {
@@ -53,10 +51,10 @@ class UserService {
         createdAt: true,
         updatedAt: true,
         lastLogin: true,
-        // fakeField: true pour tester 
+        // fakeField: true pour tester
         // password: false (on ne retourne PAS le mot de passe)
       },
-      orderBy: { lastLogin: "desc" },
+      orderBy: { lastLogin: "desc"  },
     });
 
     return users;
@@ -66,16 +64,14 @@ class UserService {
   // Aussi pour la verification lors de l'ajout
   async getUserByEmail(email) {
     const UserByEmail = await prisma.user.findUnique({
-
       where: { email },
-     
     });
     return UserByEmail;
   }
 
   // Récupérer un utilisateur par ID (sans le mot de passe)
   async getUserById(id) {
-   //await new Promise(resolve => setTimeout(resolve, 5000));
+    //await new Promise(resolve => setTimeout(resolve, 5000));
     const user = await prisma.user.findUnique({
       where: { id },
       select: {
@@ -106,12 +102,17 @@ class UserService {
   // Modifier un utilisateur
   async updateUser(id, data) {
     // Si on change le mot de passe, le hasher
+     const champsModifies = [];
+    if (data.email && data.email !== ancien.email) champsModifies.push("email");
+    if (data.nom && data.nom !== ancien.nom) champsModifies.push("nom");
+    if (data.prenom && data.prenom !== ancien.prenom)
+      champsModifies.push("prenom");
 
     if (data.password) {
       data.password = await bcryptUtils.hash(data.password);
     }
 
-    const user= await prisma.user.update({
+    const user = await prisma.user.update({
       where: { id },
       data: {
         email: data.email,
@@ -134,20 +135,28 @@ class UserService {
       },
     });
     await auditService.logAction({
-    userId: id,
-    action: 'UPDATE_USER',
-    entityType: 'User',
-    entityId: id,
-    details: { champsModifies: Object.keys(data) },
-  });
+      userId: id,
+      action: "UPDATE_USER",
+      entityType: "User",
+      entityId: id,
+      details: { champsModifies },
+    });
 
-  return user;
+    return user;
   }
 
   // Modifier uniquement son propre profil (sans changer le rôle)
   async updateOwnProfile(id, data) {
     // Ne permet PAS de changer le rôle
-    const user =  await prisma.user.update({
+    const ancien = await this.getUserById(id);
+
+    const champsModifies = [];
+    if (data.email && data.email !== ancien.email) champsModifies.push("email");
+    if (data.nom && data.nom !== ancien.nom) champsModifies.push("nom");
+    if (data.prenom && data.prenom !== ancien.prenom)
+      champsModifies.push("prenom");
+
+    const user = await prisma.user.update({
       where: { id },
       data: {
         email: data.email,
@@ -167,14 +176,14 @@ class UserService {
       },
     });
     await auditService.logAction({
-    userId: id,
-    action: 'UPDATE_USER',
-    entityType: 'User',
-    entityId: id,
-    details: { champsModifies: Object.keys(data) },
-  });
+      userId: id,
+      action: "UPDATE_USER",
+      entityType: "User",
+      entityId: id,
+      details: {champsModifies},
+    });
 
-  return user;
+    return user;
   }
   // Activer/Désactiver un utilisateur
   async toggleActive(id) {
@@ -198,12 +207,12 @@ class UserService {
       },
     });
     await auditService.logAction({
-    userId: id,
-    action: 'DEACTIVATE_USER',
-    entityType: 'User',
-    entityId: id,
-    details: { ancienStatut: user.isActive, nouveauStatut: userUpdate.isActive },
-  });
+      userId: id,
+      action: userUpdate.isActive ? 'ACTIVATE_USER' : 'DEACTIVATE_USER',
+      entityType: "User",
+      entityId: id,
+      details: {nouveauStatut: userUpdate.isActive},
+    });
     return userUpdate;
   }
 

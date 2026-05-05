@@ -10,25 +10,6 @@ router.get('/python/health', documentController.pythonHealth);
 
 router.use(authMiddleware);
 
-// router.post( '/upload',roleMiddleware('COMPTABLE', 'MANAGER', 'ADMIN'), (req, res,next) => {
-//   upload.single("file")(req, res, (err) => {
-
-//     if (err) {
-//       return res.status(400).json({
-//         error: err.message
-//       });
-//     }
-
-//     if (!req.file) {
-//       return res.status(400).json({
-//         error: "Aucun fichier fourni"
-//       });
-//     }
-
-//   next();
-//   }); 
-// },documentController.createDocument);
-// Upload + analyse IA complète (OCR + LLM)
 router.post('/upload-analyse', roleMiddleware('COMPTABLE', 'MANAGER', 'ADMIN'), (req, res, next) => {
   upload.single('file')(req, res, (err) => {
     if (err) return res.status(400).json({ error: err.message });
@@ -56,7 +37,15 @@ router.post('/validate/:id', roleMiddleware('COMPTABLE','MANAGER', 'ADMIN'),docu
 // Rejeter un Document 
 router.post('/reject/:id',   roleMiddleware('COMPTABLE','MANAGER', 'ADMIN'),documentController.rejectDocument);
 
+// Envoyer un document au bc 
+router.post('/send-to-bc/:id', roleMiddleware('COMPTABLE', 'MANAGER', 'ADMIN'), documentController.sendToBC);
+
 router.get('/file/:id',      roleMiddleware('COMPTABLE', 'MANAGER', 'ADMIN'), documentController.serveFile);
+
+
+router.get('/download/:id', roleMiddleware('COMPTABLE', 'MANAGER', 'ADMIN'),documentController.downloadFile);
+
+
 
 router.get('/stats', roleMiddleware('MANAGER', 'ADMIN'), documentController.getDashboardStats);
 

@@ -258,6 +258,58 @@ async getDashboardStats(req, res) {
 }
 
 
+async downloadFile(req, res) {
+  try {
+    const { id } = req.params;
+    const document = await documentService.downloadFile(id, req.user.id);
+
+    if (!document) {
+      return res.status(404).json({ error: 'Document introuvable' });
+    }
+
+    if (!fs.existsSync(document.filePath)) {
+      return res.status(404).json({ error: 'Fichier physique introuvable' });
+    }
+
+    res.setHeader('Content-Type', document.fileType);
+    res.setHeader('Content-Disposition', `attachment; filename="${document.originalName}"`);
+    res.sendFile(document.filePath);
+
+  } catch (error) {
+    console.error('Erreur downloadFile:', error);
+    res.status(500).json({ error: error.message });
+  }
+}
+async sendToBC(req, res) {
+  try {
+    const { id } = req.params;
+
+    // Vérifier que le document existe
+    const existing = await documentService.getDocumentById(id);
+    if (!existing) {
+      return res.status(404).json({ error: 'Document introuvable' });
+    }
+
+    // Vérifier que le statut est VALIDE
+    if (existing.statut !== 'VALIDE') {
+      return res.status(400).json({ 
+        error: 'Le document doit être validé avant envoi vers BC' 
+      });
+    }
+
+    const result = await documentService.sendToBC(id, req.user.id);
+
+    res.json({
+      message: 'Document envoyé vers Business Central avec succès',
+      document: result.document,
+      bcResult: result.bcResult,
+    });
+
+  } catch (error) {
+    console.error('Erreur sendToBC:', error);
+    res.status(500).json({ error: error.message });
+  }
+}
 
 
 

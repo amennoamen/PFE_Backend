@@ -32,11 +32,11 @@ class AuthService {
       data: { lastLogin: new Date() },
     });
     const token = jwtUtils.generateToken(user);
-      // ✅ Log LOGIN
+      //  Log LOGIN
   await auditService.logAction({
     userId: user.id,
     action: 'LOGIN',
-    entityType: 'User',
+    entityType: 'Authentification',
     entityId: user.id,
   });
     // 5. Retourner le token et les infos utilisateur (sans le password)
