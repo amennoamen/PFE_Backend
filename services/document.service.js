@@ -561,22 +561,37 @@ class DocumentService {
           bcId: order.id,
         };
       } else if (typeDocument === "Commande Achat") {
+        const vendor = await bcService.findVendorByName(bcFields.vendorName);
+        if (!vendor) {
+          throw new Error(
+            `Fournisseur introuvable dans BC : ${bcFields.vendorName}`,
+          );
+        }
+
         const order = await bcService.createPurchaseOrder({
-          vendorName: bcFields.vendorName || null,
-          vendorNumber: bcFields.vendorNumber || null,
+          vendorNumber: vendor.number,
           orderDate: bcFields.orderDate || null,
-          currencyCode: bcFields.currencyCode || "TND",
-          externalDocumentNumber: bcFields.externalDocumentNumber || null,
           requestedReceiptDate: bcFields.requestedReceiptDate || null,
         });
 
         if (bcLines && bcLines.length > 0) {
           for (const line of bcLines) {
+            const item = await bcService.findItemByDescription(
+              line.description,
+            );
+            if (!item) {
+              throw new Error(
+                `Article introuvable dans BC : ${line.description}`,
+              );
+            }
+
             await bcService.addPurchaseOrderLine({
               documentId: order.id,
+              lineType: "Item",
+              lineObjectNumber: item.number,
               description: line.description || "",
               quantity: line.quantity || 1,
-              unitPrice: line.unitPrice || 0,
+              directUnitCost: line.unitPrice || 0,
             });
           }
         }
@@ -586,6 +601,41 @@ class DocumentService {
           bcNumber: order.number,
           bcId: order.id,
         };
+      } else if (typeDocument === "Devis") {
+        const customer = await bcService.findCustomerByName(
+          bcFields.customerName,
+        );
+        if (!customer) {
+          throw new Error(
+            `Client introuvable dans BC : ${bcFields.customerName}`,
+          );
+        }
+
+        const quote = await bcService.createSalesQuote({
+          customerNumber: customer.number,
+          documentDate: bcFields.documentDate || null,
+        });
+
+        if (bcLines && bcLines.length > 0) {
+          for (const line of bcLines) {
+            const item = await bcService.findItemByDescription(
+              line.description,
+            );
+            if (!item) {
+              throw new Error(
+                `Article introuvable dans BC : ${line.description}`,
+              );
+            }
+            await bcService.addSalesQuoteLine({
+              documentId: quote.id,
+              itemNumber: item.number,
+              quantity: line.quantity || 1,
+              unitPrice: line.unitPrice || 0,
+            });
+          }
+        }
+
+        bcResult = { type: "Devis", bcNumber: quote.number, bcId: quote.id };
       } else {
         throw new Error(
           `Type de document non supporté pour l'envoi BC : ${typeDocument}`,

@@ -128,6 +128,11 @@ module.exports = {
   addSalesOrderLine: (args) => callBCTool('add_sales_order_line', args),
 
   // Purchase Order
+  findVendorByName: (name) => callBCTool('find_vendor_by_name', { name }),
   createPurchaseOrder: (args) => callBCTool('create_purchase_order', args),
   addPurchaseOrderLine: (args) => callBCTool('add_purchase_order_line', args),
+
+  //Devis
+  createSalesQuote: (args) => callBCTool('create_sales_quote', args),
+  addSalesQuoteLine: (args) => callBCTool('add_sales_quote_line', args),
 };
