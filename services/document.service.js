@@ -530,25 +530,72 @@ class DocumentService {
           bcNumber: invoice.number,
           bcId: invoice.id,
         };
-      } else if (typeDocument === "Commande Vente") {
-        const { customer } = await bcService.findOrCreateCustomer(
-          bcFields.customerName || "Client Inconnu",
-        );
+      } else if (typeDocument === "Facture Achat") {
+        const vendor = await bcService.findVendorByName(bcFields.vendorName);
+        if (!vendor) {
+          throw new Error(
+            `Fournisseur introuvable dans BC : ${bcFields.vendorName}`,
+          );
+        }
 
-        const order = await bcService.createSalesOrder({
-          customerNumber: customer.id,
-          customerName: bcFields.customerName,
-          orderDate: bcFields.orderDate || null,
-          currencyCode: bcFields.currencyCode || "TND",
-          externalDocumentNumber: bcFields.externalDocumentNumber || null,
-          requestedDeliveryDate: bcFields.requestedDeliveryDate || null,
+        const invoice = await bcService.createPurchaseInvoice({
+          vendorNumber: vendor.number,
+          invoiceDate: bcFields.invoiceDate || null,
+          vendorInvoiceNumber: bcFields.vendorInvoiceNumber || null,
         });
 
         if (bcLines && bcLines.length > 0) {
           for (const line of bcLines) {
+            const item = await bcService.findItemByDescription(
+              line.description,
+            );
+            if (!item) {
+              throw new Error(
+                `Article introuvable dans BC : ${line.description}`,
+              );
+            }
+            await bcService.addPurchaseInvoiceLine({
+              documentId: invoice.id,
+              itemNumber: item.number,
+              quantity: line.quantity || 1,
+              unitPrice: line.unitPrice || 0,
+            });
+          }
+        }
+
+        bcResult = {
+          type: "Facture Achat",
+          bcNumber: invoice.number,
+          bcId: invoice.id,
+        };
+      } else if (typeDocument === "Commande Vente") {
+        const customer = await bcService.findCustomerByName(
+          bcFields.customerName,
+        );
+        if (!customer) {
+          throw new Error(
+            `Client introuvable dans BC : ${bcFields.customerName}`,
+          );
+        }
+
+        const order = await bcService.createSalesOrder({
+          customerNumber: customer.number,
+          orderDate: bcFields.orderDate || null,
+        });
+
+        if (bcLines && bcLines.length > 0) {
+          for (const line of bcLines) {
+            const item = await bcService.findItemByDescription(
+              line.description,
+            );
+            if (!item) {
+              throw new Error(
+                `Article introuvable dans BC : ${line.description}`,
+              );
+            }
             await bcService.addSalesOrderLine({
               documentId: order.id,
-              description: line.description || "",
+              itemNumber: item.number,
               quantity: line.quantity || 1,
               unitPrice: line.unitPrice || 0,
             });

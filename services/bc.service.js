@@ -135,4 +135,7 @@ module.exports = {
   //Devis
   createSalesQuote: (args) => callBCTool('create_sales_quote', args),
   addSalesQuoteLine: (args) => callBCTool('add_sales_quote_line', args),
+  // Facture Achat
+  createPurchaseInvoice: (args) => callBCTool('create_purchase_invoice', args),
+  addPurchaseInvoiceLine: (args) => callBCTool('add_purchase_invoice_line', args),
 };
